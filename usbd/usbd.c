@@ -28,6 +28,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <cutils/properties.h>
 #define LOG_TAG "usbd"
 #include <cutils/log.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <linux/netlink.h>
+#include <sys/param.h>
+
 
 #define USBD_VER "1.0_CM"
 
@@ -59,7 +64,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define USBD_ADB_STATUS_OFF                 "usbd_adb_status_off"
 
 /* event prefixes */
-#define USBD_START_PREFIX                   "usbd_start_"
+#define USBD_START_PREFIX		    "usbd_start_"
 #define USBD_REQ_SWITCH_PREFIX              "usbd_req_switch_"
 #define USB_MODE_PREFIX                     "usb_mode_"
 
@@ -86,8 +91,8 @@ struct usb_mode_info
 { \
     .apk_mode =         USB_MODE_PREFIX       apk, \
     .apk_mode_adb =     USB_MODE_PREFIX       apk   USB_MODE_ADB_SUFFIX, \
-    .apk_start =        USB_START_PREFIX      apk, \
-    .apk_req_switch =   USB_REQ_SWITCH_PREFIX apk, \
+    .apk_start =        USBD_START_PREFIX      apk,	\
+    .apk_req_switch =   USBD_REQ_SWITCH_PREFIX apk, \
     .kern_mode =                              kern, \
     .kern_mode_adb =                          kern  USB_MODE_ADB_SUFFIX, \
 }
@@ -123,12 +128,12 @@ struct usb_mode_info
 /* available modes */
 static struct usb_mode_info usb_modes[] = 
 {
-  USB_MODE_INFO(USB_APK_MODE_NGP,         USB_KERN_MODE_NGP),
-  USB_MODE_INFO(USB_APK_MODE_NGP_MTP,     USB_KERN_MODE_NGP_MTP),
-  USB_MODE_INFO(USB_APK_MODE_MTP,         USB_KERN_MODE_MTP),
-  USB_MODE_INFO(USB_APK_MODE_MODEM,       USB_KERN_MODE_MODEM),
-  USB_MODE_INFO(USB_APK_MODE_MSC,         USB_KERN_MODE_MSC),
-  USB_MODE_INFO(USB_APK_MODE_RNDIS,       USB_KERN_MODE_RNDIS),
+  USB_MODE_INFO(USB_APK_MODE_NGP,	  USB_KERN_MODE_NGP),
+  USB_MODE_INFO(USB_APK_MODE_NGP_MTP,	  USB_KERN_MODE_NGP_MTP),
+  USB_MODE_INFO(USB_APK_MODE_MTP,	  USB_KERN_MODE_MTP),
+  USB_MODE_INFO(USB_APK_MODE_MODEM,	  USB_KERN_MODE_MODEM),
+  USB_MODE_INFO(USB_APK_MODE_MSC,	  USB_KERN_MODE_MSC),
+  USB_MODE_INFO(USB_APK_MODE_RNDIS,	  USB_KERN_MODE_RNDIS),
   USB_MODE_INFO(USB_APK_MODE_CHARGE_ONLY, USB_KERN_MODE_CHARGE_ONLY),
 };
 
@@ -350,7 +355,7 @@ int main(int argc, char **argv)
   /* init cable status */
   if (usbd_get_cable_status() < 0)
   {
-    LOGE("main(): failed to get cable status (%s)\n",);
+    LOGE("main(): failed to get cable status (%s)\n");
     return -1;
   }
    
