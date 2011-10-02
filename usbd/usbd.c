@@ -36,7 +36,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 
 
-#define ARRAY_SIZE(Array) (sizeof(Array)/sizeof(Array[0]))
+//#define ARRAY_SIZE(Array) (sizeof(Array)/sizeof(Array[0]))
+
+#define ARRAY_SIZE(a) (sizeof a / sizeof a[0])
 
 #define USBD_VER "1.0_CM"
 
@@ -189,11 +191,14 @@ int open_uevent_socket(void)
 }
 
 
-/* Phone was started up in normal mode */
+/* Phone was started up in normal mode 
+ * main(): Phone was started up in normal mod
+ * Succesfully returned status
+ */
+
 int get_phone_mode(void)
 {
         char mode[PROPERTY_VALUE_MAX];
-//      char get_name[255];
 
         if (property_get(PROPERTY_ADB_PHONE, mode, NULL)) {
                 if (!strcmp(mode, "normal"))
@@ -204,22 +209,26 @@ int get_phone_mode(void)
         return 0;
 }
 
-/* Gets adb status */
-int get_adb_enabled_status(void)
-{
-  char buff[PROPERTY_VALUE_MAX];
-  int ret;
+/* Gets adb status 
+ * 4611  4611 I usbd    : ADB status is 1
+ * USBD succesfully returned
+ * real status of persist.service.adb
+ */
+
+int get_adb_enabled_status(void){
+	char buff[PROPERTY_VALUE_MAX];
+	int ret;
   
-  ret = property_get(PROPERTY_ADB_ENABLED, buff, "0");
-  if (!ret)
-    return -1;
-    
-  return (!strcmp(buff, "1"));
-}
+	ret = property_get(PROPERTY_ADB_ENABLED, buff, "0");
+	if (!ret)
+		return -1;
+//	LOGI("ADB status is %s", buff);    
+	return (!strcmp(buff, "1"));
+	}
 
-
-/* Sends adb status to usb.apk (or other listeners) */
-
+/* Sends adb status to usb.apk (or other listeners)
+ * Need implement send_data function
+ */
 
 static int usbd_send_adb_status(int status){
   int ret;
@@ -373,6 +382,7 @@ int main(int argc, char **argv)
   LOGD("main(): Initializing usb_device_mode \n");
   usb_mode_fd = open("/dev/usb_device_mode", O_RDONLY);
 
+  get_adb_enabled_status();
   
   get_phone_mode();
 
