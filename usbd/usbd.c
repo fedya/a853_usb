@@ -143,7 +143,12 @@ static struct usb_mode_info usb_modes[] =
 
 /* File descriptors */
 int uevent_fd = -1;
+int ns = -1;
 int usb_mode_fd = -1;
+
+//socket addr
+struct sockaddr_un addr;
+struct sockaddr_un faddr;
 
 /* Listener sockets' descriptors */
 int listeners_fd[0x10];
@@ -156,26 +161,26 @@ int usb_online = 0;
 /* Opens uevent socked for usbd */
 int open_uevent_socket(void)
 {
-  struct sockaddr_nl addr;
-  int sz = 64*1024;
+  int sz = 64*1024, flags;
 
   memset(&addr, 0, sizeof(addr));
-  addr.nl_family = AF_NETLINK;
-  addr.nl_pid = getpid();
-  addr.nl_groups = 0xFFFFFFFF;
+  addr.sun_family = AF_UNIX;
+  strcpy(addr.sun_path, "/dev/socket/usbd");
   
-  uevent_fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
+  uevent_fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (uevent_fd < 0)
   {
     LOGE("open_uevent_socket(): Unable to create uevent socket '%s'\n", strerror(errno));
     return -1;
   }
-  
-  if (setsockopt(uevent_fd, SOL_SOCKET, SO_RCVBUFFORCE, &sz, sizeof(sz)) < 0) 
+  flags = fcntl(uevent_fd, F_GETFL, 0);
+  fcntl(uevent_fd, F_SETFL, flags | O_NONBLOCK);
+
+/*  if (setsockopt(uevent_fd, SOL_SOCKET, SO_RCVBUFFORCE, &sz, sizeof(sz)) < 0) 
   {
     LOGE("open_uevent_socket(): Unable to set uevent socket options '%s'\n", strerror(errno));
     return -1;
-  }
+  }*/
   
   if (bind(uevent_fd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
   {
@@ -183,6 +188,10 @@ int open_uevent_socket(void)
     return -1;
   }
   
+  if(listen(uevent_fd, 5) < 0) {
+    LOGE("open_uevent_socket(): can't listen on uevent_fd socket");
+    return -1;
+  }
   return 0;
 }
 
@@ -332,6 +341,7 @@ int usbd_get_cable_status(void)
 
 int init_usdb_socket(void)
 {
+	LOGI("usbd socket function");
 	return NULL;
 		}
 
@@ -339,6 +349,8 @@ int init_usdb_socket(void)
 /* Usbd main */
 int main(int argc, char **argv)
 {
+  char buf[513];
+  int len;
   LOGD("main(): Start usbd - version " USBD_VER "\n");
   
   /* init uevent */
@@ -362,13 +374,21 @@ int main(int argc, char **argv)
     LOGE("main(): failed to create socket server '%s'\n", strerror(errno));
     return -errno;
   }
-  
   /* init cable status */
   if (usbd_get_cable_status() < 0)
   {
     LOGE("main(): failed to get cable status (%s)\n");
     return -1;
   }
+ while(1) {
+	if((ns = accept(uevent_fd, (struct sockaddr *) &addr, sizeof(struct sockaddr))) > 0) {
+		len = recv(ns, &buf, 512, 0);
+		buf[len] = '\0';
+		LOGI("%s", buf);
+		close(ns);
+	}
+
+ }
 return NULL;
 
 }
