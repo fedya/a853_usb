@@ -31,8 +31,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <linux/netlink.h>
+#include <linux/kernel.h>
 #include <sys/param.h>
 
+
+
+#define ARRAY_SIZE(Array) (sizeof(Array)/sizeof(Array[0]))
 
 #define USBD_VER "1.0_CM"
 
@@ -196,8 +200,9 @@ int get_adb_enabled_status(void)
 }
 
 /* Sends adb status to usb.apk (or other listeners) */
-static usbd_send_adb_status(int status)
-{
+
+
+static int usbd_send_adb_status(int status){
   int ret;
   
   if (status == 1)
@@ -213,7 +218,6 @@ static usbd_send_adb_status(int status)
   }
   
   return ret <= 0; //1 = fail
-
 }
 
 /* Get usb mode index */
@@ -325,6 +329,13 @@ int usbd_get_cable_status(void)
   return 0;
 }
 
+
+int init_usdb_socket(void)
+{
+	return NULL;
+		}
+
+
 /* Usbd main */
 int main(int argc, char **argv)
 {
@@ -358,5 +369,6 @@ int main(int argc, char **argv)
     LOGE("main(): failed to get cable status (%s)\n");
     return -1;
   }
-   
+return NULL;
+
 }
