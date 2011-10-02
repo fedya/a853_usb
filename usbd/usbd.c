@@ -44,6 +44,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  
 #define PROPERTY_ADB_ENABLED                "persist.service.adb.enable"
 
+#define PROPERTY_ADB_PHONE		    "ro.usb_mode"
+
 /* usb status */
 #define USB_MODEL_NAME_PATH                 "/sys/devices/platform/cpcap_battery/power_supply/usb/model_name"
 #define USB_ONLINE_PATH                     "/sys/devices/platform/cpcap_battery/power_supply/usb/online"
@@ -143,12 +145,7 @@ static struct usb_mode_info usb_modes[] =
 
 /* File descriptors */
 int uevent_fd = -1;
-int ns = -1;
 int usb_mode_fd = -1;
-
-//socket addr
-struct sockaddr_un addr;
-struct sockaddr_un faddr;
 
 /* Listener sockets' descriptors */
 int listeners_fd[0x10];
@@ -161,26 +158,26 @@ int usb_online = 0;
 /* Opens uevent socked for usbd */
 int open_uevent_socket(void)
 {
-  int sz = 64*1024, flags;
+  struct sockaddr_nl addr;
+  int sz = 64*1024;
 
   memset(&addr, 0, sizeof(addr));
-  addr.sun_family = AF_UNIX;
-  strcpy(addr.sun_path, "/dev/socket/usbd");
+  addr.nl_family = AF_NETLINK;
+  addr.nl_pid = getpid();
+  addr.nl_groups = 0xFFFFFFFF;
   
-  uevent_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  uevent_fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
   if (uevent_fd < 0)
   {
     LOGE("open_uevent_socket(): Unable to create uevent socket '%s'\n", strerror(errno));
     return -1;
   }
-  flags = fcntl(uevent_fd, F_GETFL, 0);
-  fcntl(uevent_fd, F_SETFL, flags | O_NONBLOCK);
-
-/*  if (setsockopt(uevent_fd, SOL_SOCKET, SO_RCVBUFFORCE, &sz, sizeof(sz)) < 0) 
+  
+  if (setsockopt(uevent_fd, SOL_SOCKET, SO_RCVBUFFORCE, &sz, sizeof(sz)) < 0) 
   {
     LOGE("open_uevent_socket(): Unable to set uevent socket options '%s'\n", strerror(errno));
     return -1;
-  }*/
+  }
   
   if (bind(uevent_fd, (struct sockaddr *) &addr, sizeof(addr)) < 0)
   {
@@ -188,11 +185,23 @@ int open_uevent_socket(void)
     return -1;
   }
   
-  if(listen(uevent_fd, 5) < 0) {
-    LOGE("open_uevent_socket(): can't listen on uevent_fd socket");
-    return -1;
-  }
   return 0;
+}
+
+
+/* Phone was started up in normal mode */
+int get_phone_mode(void)
+{
+        char mode[PROPERTY_VALUE_MAX];
+//      char get_name[255];
+
+        if (property_get(PROPERTY_ADB_PHONE, mode, NULL)) {
+                if (!strcmp(mode, "normal"))
+                LOGI("main(): Phone was started up in %s mode", mode);
+                }{
+       		if (!strcmp(mode, "debug"))
+		LOGI("main(): Phone was started up in %s mode", mode);}
+        return 0;
 }
 
 /* Gets adb status */
@@ -207,6 +216,7 @@ int get_adb_enabled_status(void)
     
   return (!strcmp(buff, "1"));
 }
+
 
 /* Sends adb status to usb.apk (or other listeners) */
 
@@ -232,7 +242,7 @@ static int usbd_send_adb_status(int status){
 /* Get usb mode index */
 int usbd_get_mode_index(const char* mode, int apk)
 {
-  int i;
+  unsigned int i;
   
   for (i = 0; i < ARRAY_SIZE(usb_modes); i++)
   {
@@ -339,20 +349,21 @@ int usbd_get_cable_status(void)
 }
 
 
-int init_usdb_socket(void)
+
+
+int init_usbd_socket(void)
 {
-	LOGI("usbd socket function");
-	return NULL;
+	
+	
+	return 0;
 		}
 
 
 /* Usbd main */
 int main(int argc, char **argv)
 {
-  char buf[513];
-  int len;
   LOGD("main(): Start usbd - version " USBD_VER "\n");
-  
+
   /* init uevent */
   LOGD("main(): Initializing uevent_socket \n");
   if (open_uevent_socket())
@@ -362,6 +373,9 @@ int main(int argc, char **argv)
   LOGD("main(): Initializing usb_device_mode \n");
   usb_mode_fd = open("/dev/usb_device_mode", O_RDONLY);
 
+  
+  get_phone_mode();
+
   if (usb_mode_fd < 0)
   {
     LOGE("main(): Unable to open usb_device_mode '%s'\n", strerror(errno));
@@ -369,26 +383,18 @@ int main(int argc, char **argv)
   }
 
   /* init usdb socket */
-  if (init_usdb_socket() < 0)
+  if (init_usbd_socket() < 0)
   {
     LOGE("main(): failed to create socket server '%s'\n", strerror(errno));
     return -errno;
   }
+  
   /* init cable status */
   if (usbd_get_cable_status() < 0)
   {
-    LOGE("main(): failed to get cable status (%s)\n");
+    LOGE("main(): failed to get cable status\n");
     return -1;
   }
- while(1) {
-	if((ns = accept(uevent_fd, (struct sockaddr *) &addr, sizeof(struct sockaddr))) > 0) {
-		len = recv(ns, &buf, 512, 0);
-		buf[len] = '\0';
-		LOGI("%s", buf);
-		close(ns);
-	}
-
- }
-return NULL;
+return 0;
 
 }
