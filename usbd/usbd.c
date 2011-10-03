@@ -232,11 +232,13 @@ int get_adb_enabled_status(void){
 
 
 
-/*int send_data(void){
+/* work with /dev/socket/usbd 
+ * need send info like @usbd_adb_status_on
+ */
+int send_data(int argc, char **argv){
 	return 0;
 }
 
-*/
 
 
 /* Sends adb status to usb.apk (or other listeners)
@@ -434,8 +436,6 @@ int main(int argc, char **argv)
   LOGD("main(): Initializing usb_device_mode \n");
   usb_mode_fd = open("/dev/usb_device_mode", O_RDONLY);
 
-  get_adb_enabled_status();
-  
   get_phone_mode();
 
   if (usb_mode_fd < 0)
@@ -459,18 +459,17 @@ int main(int argc, char **argv)
   }
 
  while(1) {
-        ns = accept(socket_ev, 0, 0);
-        if(ns != -1) {
-                while(len = recv(ns, &buf, 512, 0)) {
-                        buf[len] = '\0';
-                        LOGI("receiving shit");
-                        LOGI("%s", buf);
-                }
-                close(ns);
+	ns = accept(socket_ev, 0, 0);
+	if(ns != -1) {
+		while(len = recv(ns, &buf, 512, 0)) {
+			buf[len] = '\0';
+			LOGI("receiving shit");
+			LOGI("%s", buf);
+		}
+		close(ns);
 	}
 
 }
 
 return 0;
-
 }
