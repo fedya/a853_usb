@@ -344,9 +344,11 @@ int usbd_get_cable_status(void)
   }
   else 
     usb_cable_type = USB_TYPE_CABLE_NONE;
-    
+
   fclose(f);
   
+  LOGI("usbd_get_cable_status(): cable_type = %s", buf);
+
   /* get online status */
   f = fopen(USB_ONLINE_PATH, "r");
   
@@ -370,6 +372,7 @@ int usbd_get_cable_status(void)
     
   fclose(f);
     
+  LOGI("usbd_get_cable_status(): current usb_online = %s", buf);
   return 0;
 }
 
@@ -458,7 +461,6 @@ int main(int argc, char **argv)
  while(1) {
         ns = accept(socket_ev, 0, 0);
         if(ns != -1) {
-//                send(ns, to_send , 16, 0);
                 while(len = recv(ns, &buf, 512, 0)) {
                         buf[len] = '\0';
                         LOGI("receiving shit");
