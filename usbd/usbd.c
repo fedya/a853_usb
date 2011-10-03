@@ -115,35 +115,25 @@ struct usb_mode_info
  */
 
 /* usb modes for usb.apk */
-#define USB_APK_MODE_NGP              "ngp"
-#define USB_APK_MODE_NGP_MTP          "ngp_mtp"
-#define USB_APK_MODE_MTP              "mtp"
-//#define USB_APK_MODE_MODEM            "acm"
-#define USB_MODE_MODEM	   	      "acm_eth_adb"
-#define USB_APK_MODE_MSC              "msc"
-#define USB_APK_MODE_RNDIS            "rndis"
-#define USB_APK_MODE_CHARGE_ONLY      "charge_only"
+#define USB_APK_MODE_NGP              "usb_mode_ngp_adb"
+#define USB_APK_MODE_MTP              "usb_mode_mtp_adb"
+#define USB_APK_MODE_MODEM	      "usb_mode_ngp_adb"
+#define USB_APK_MODE_MSC              "usb_mode_msc_adb"
 
 /* usb modes for kernel */
 #define USB_KERN_MODE_NET             "eth"
-#define USB_KERN_MODE_NGP             "acm_eth"
-#define USB_KERN_MODE_NGP_MTP         "acm_eth_mtp"
-#define USB_KERN_MODE_MTP             "mtp"
+#define USB_KERN_MODE_NGP             "acm_eth_mtp_adb"
+#define USB_KERN_MODE_MTP             "mtp_adb"
 #define USB_KERN_MODE_MODEM           "acm_eth_adb"
-#define USB_KERN_MODE_MSC             "msc"
-#define USB_KERN_MODE_RNDIS           "rndis"
-#define USB_KERN_MODE_CHARGE_ONLY     "charge_only"
+#define USB_KERN_MODE_MSC             "msc_adb"
 
 /* available modes */
 static struct usb_mode_info usb_modes[] = 
 {
   USB_MODE_INFO(USB_APK_MODE_NGP,	  USB_KERN_MODE_NGP),
-  USB_MODE_INFO(USB_APK_MODE_NGP_MTP,	  USB_KERN_MODE_NGP_MTP),
   USB_MODE_INFO(USB_APK_MODE_MTP,	  USB_KERN_MODE_MTP),
-  USB_MODE_INFO(USB_MODE_MODEM,		  USB_KERN_MODE_MODEM),
+  USB_MODE_INFO(USB_APK_MODE_MODEM,	  USB_KERN_MODE_MODEM),
   USB_MODE_INFO(USB_APK_MODE_MSC,	  USB_KERN_MODE_MSC),
-  USB_MODE_INFO(USB_APK_MODE_RNDIS,	  USB_KERN_MODE_RNDIS),
-  USB_MODE_INFO(USB_APK_MODE_CHARGE_ONLY, USB_KERN_MODE_CHARGE_ONLY),
 };
 
 /* File descriptors */
@@ -292,28 +282,28 @@ int usbd_get_mode_index(const char* mode, int apk)
 /* Sets usb mode */
 int usbd_set_usb_mode(int new_mode)
 {
-  int adb_sts;
-  const char* mode_str;
+	int adb_sts;
+	const char* mode_str;
 
-  if (new_mode > 0 && new_mode < ARRAY_SIZE(usb_modes))
-  {
-    /* Check ADB status */
-    adb_sts = get_adb_enabled_status();
+	if (new_mode > 0 && new_mode < ARRAY_SIZE(usb_modes))
+	{
+	/* Check ADB status */
+	adb_sts = get_adb_enabled_status();
     
-    /* Moto gadget driver expects us to append "_adb" */
-    if (adb_sts == 1)
-      mode_str = usb_modes[new_mode].kern_mode_adb;
-    else
-      mode_str = usb_modes[new_mode].kern_mode;
+	/* Moto gadget driver expects us to append "_adb" */
+		if (adb_sts == 1)
+			mode_str = usb_modes[new_mode].kern_mode_adb;
+		else
+			mode_str = usb_modes[new_mode].kern_mode;
       
-    write(usb_mode_fd, mode_str, strlen(mode_str) + 1);
-    return 0;
-  }
-  else
-  {
-    LOGE("usbd_set_usb_mode(): Cannot set usb mode to '%d'\n", new_mode);
-    return 1;
-  }
+		write(usb_mode_fd, mode_str, strlen(mode_str) + 1);
+		return 0;
+			}
+	else
+	{
+	LOGE("usbd_set_usb_mode(): Cannot set usb mode to '%d'\n", new_mode);
+	return 1;
+	}
 }
 
 /* Get cable status */
