@@ -118,7 +118,8 @@ struct usb_mode_info
 #define USB_APK_MODE_NGP              "ngp"
 #define USB_APK_MODE_NGP_MTP          "ngp_mtp"
 #define USB_APK_MODE_MTP              "mtp"
-#define USB_APK_MODE_MODEM            "acm"
+//#define USB_APK_MODE_MODEM            "acm"
+#define USB_MODE_MODEM	   	      "acm_eth_adb"
 #define USB_APK_MODE_MSC              "msc"
 #define USB_APK_MODE_RNDIS            "rndis"
 #define USB_APK_MODE_CHARGE_ONLY      "charge_only"
@@ -128,7 +129,7 @@ struct usb_mode_info
 #define USB_KERN_MODE_NGP             "acm_eth"
 #define USB_KERN_MODE_NGP_MTP         "acm_eth_mtp"
 #define USB_KERN_MODE_MTP             "mtp"
-#define USB_KERN_MODE_MODEM           "acm"
+#define USB_KERN_MODE_MODEM           "acm_eth_adb"
 #define USB_KERN_MODE_MSC             "msc"
 #define USB_KERN_MODE_RNDIS           "rndis"
 #define USB_KERN_MODE_CHARGE_ONLY     "charge_only"
@@ -139,7 +140,7 @@ static struct usb_mode_info usb_modes[] =
   USB_MODE_INFO(USB_APK_MODE_NGP,	  USB_KERN_MODE_NGP),
   USB_MODE_INFO(USB_APK_MODE_NGP_MTP,	  USB_KERN_MODE_NGP_MTP),
   USB_MODE_INFO(USB_APK_MODE_MTP,	  USB_KERN_MODE_MTP),
-  USB_MODE_INFO(USB_APK_MODE_MODEM,	  USB_KERN_MODE_MODEM),
+  USB_MODE_INFO(USB_MODE_MODEM,		  USB_KERN_MODE_MODEM),
   USB_MODE_INFO(USB_APK_MODE_MSC,	  USB_KERN_MODE_MSC),
   USB_MODE_INFO(USB_APK_MODE_RNDIS,	  USB_KERN_MODE_RNDIS),
   USB_MODE_INFO(USB_APK_MODE_CHARGE_ONLY, USB_KERN_MODE_CHARGE_ONLY),
@@ -235,8 +236,8 @@ int get_adb_enabled_status(void){
 /* work with /dev/socket/usbd 
  * need send info like @usbd_adb_status_on
  */
-int send_data(int argc, char **argv){
-	return 0;
+int send_data(char *buf, int len){
+	return send(ns, buf, len, 0);
 }
 
 
@@ -371,11 +372,19 @@ int usbd_get_cable_status(void)
     usb_online = 1;
   else
     usb_online = 0;   
-    
-  fclose(f);
-    
+  /*
+  if (!strcmp(buf, "1"))
+    send_data(USBD_EVENT_CABLE_CONNECTED, strlen(USBD_EVENT_CABLE_CONNECTED) + 1);
+    LOGI("usbd_notify_current_status(): : Notifying App with Current Status : %s", USBD_EVENT_CABLE_CONNECTED);
+ */
+ fclose(f);
+
   LOGI("usbd_get_cable_status(): current usb_online = %s", buf);
-  return 0;
+
+  if (usb_online = 1)
+    send_data(USBD_EVENT_CABLE_CONNECTED, strlen(USBD_EVENT_CABLE_CONNECTED) + 1);
+    LOGI("usbd_notify_current_status(): : Notifying App with Current Status : %s", USBD_EVENT_CABLE_CONNECTED);
+    return 0;
 }
 
 
@@ -461,6 +470,8 @@ int main(int argc, char **argv)
  while(1) {
 	ns = accept(socket_ev, 0, 0);
 	if(ns != -1) {
+		usbd_send_adb_status(1);
+		usbd_get_cable_status();
 		while(len = recv(ns, &buf, 512, 0)) {
 			buf[len] = '\0';
 			LOGI("receiving shit");
