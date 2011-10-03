@@ -150,6 +150,9 @@ int uevent_fd = -1;
 int socket_ev = -1;
 int usb_mode_fd = -1;
 
+/* ns needed for daemon */
+int ns = -1;
+
 /* Listener sockets' descriptors */
 int listeners_fd[0x10];
 
@@ -413,6 +416,10 @@ int init_usbd_socket(void)
 /* Usbd main */
 int main(int argc, char **argv)
 {
+  char buf[513];
+  int len;
+
+
   LOGD("main(): Start usbd - version " USBD_VER "\n");
 
   /* init uevent */
@@ -447,6 +454,21 @@ int main(int argc, char **argv)
     LOGE("main(): failed to get cable status\n");
     return -1;
   }
+
+ while(1) {
+        ns = accept(socket_ev, 0, 0);
+        if(ns != -1) {
+//                send(ns, to_send , 16, 0);
+                while(len = recv(ns, &buf, 512, 0)) {
+                        buf[len] = '\0';
+                        LOGI("receiving shit");
+                        LOGI("%s", buf);
+                }
+                close(ns);
+	}
+
+}
+
 return 0;
 
 }
