@@ -147,6 +147,7 @@ static struct usb_mode_info usb_modes[] =
 
 /* File descriptors */
 int uevent_fd = -1;
+int socket_ev = -1;
 int usb_mode_fd = -1;
 
 /* Listener sockets' descriptors */
@@ -226,8 +227,20 @@ int get_adb_enabled_status(void){
 	return (!strcmp(buff, "1"));
 	}
 
+
+
+/*int send_data(void){
+	return 0;
+}
+
+*/
+
+
 /* Sends adb status to usb.apk (or other listeners)
- * Need implement send_data function
+ * Need to implement send_data function
+ * it must send data to /dev/socket/usbd 
+ * data must be like usbd_adb_status_on or cable_connected
+ * Look at UsbListener.java
  */
 
 static int usbd_send_adb_status(int status){
@@ -358,15 +371,44 @@ int usbd_get_cable_status(void)
 }
 
 
-
+/*AF_UNIX usbd socket */
 
 int init_usbd_socket(void)
 {
-	
-	
-	return 0;
-		}
+	struct sockaddr_un addr;
+	struct sockaddr_un faddr;
 
+	int sz = 64*1024, flags;
+	
+	memset(&addr, 0, sizeof(addr));
+	addr.sun_family = AF_UNIX;
+	
+	strcpy(addr.sun_path, "/dev/socket/usbd");
+
+	socket_ev = socket(AF_UNIX, SOCK_STREAM, 0);
+	unlink(addr.sun_path);
+	if (socket_ev < 0)
+	{
+	LOGE("main(): Unable to create usbd socket '%s'\n", strerror(errno));
+	return -1;
+	}
+
+	if (bind(socket_ev, (struct sockaddr *) &addr, sizeof(addr)) < 0)
+	{
+	LOGE("main(): Unable to bind usbd socket '%s'\n", strerror(errno));
+	return -1;
+	}
+
+	if(listen(socket_ev, 5) < 0) {
+	LOGE("main(): can't listen on socket_ev usbd socket");
+	return -1;
+	}
+
+	LOGI("main(): Initializing usbd socket");
+	return 0;
+
+
+	}
 
 /* Usbd main */
 int main(int argc, char **argv)
