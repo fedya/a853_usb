@@ -130,10 +130,10 @@ struct usb_mode_info
 /* available modes */
 static struct usb_mode_info usb_modes[] = 
 {
-  USB_MODE_INFO(USB_APK_MODE_NGP,	  USB_KERN_MODE_NGP),
-  USB_MODE_INFO(USB_APK_MODE_MTP,	  USB_KERN_MODE_MTP),
-  USB_MODE_INFO(USB_APK_MODE_MODEM,	  USB_KERN_MODE_MODEM),
-  USB_MODE_INFO(USB_APK_MODE_MSC,	  USB_KERN_MODE_MSC),
+	USB_MODE_INFO(USB_APK_MODE_NGP,	  USB_KERN_MODE_NGP),
+	USB_MODE_INFO(USB_APK_MODE_MTP,	  USB_KERN_MODE_MTP),
+	USB_MODE_INFO(USB_APK_MODE_MODEM,	  USB_KERN_MODE_MODEM),
+	USB_MODE_INFO(USB_APK_MODE_MSC,	  USB_KERN_MODE_MSC),
 };
 
 /* File descriptors */
@@ -164,6 +164,7 @@ int open_uevent_socket(void)
   addr.nl_groups = 0xFFFFFFFF;
   
   uevent_fd = socket(PF_NETLINK, SOCK_DGRAM, NETLINK_KOBJECT_UEVENT);
+  
   if (uevent_fd < 0)
   {
     LOGE("open_uevent_socket(): Unable to create uevent socket '%s'\n", strerror(errno));
@@ -185,6 +186,23 @@ int open_uevent_socket(void)
   return 0;
 }
 
+int ev_init(void)
+{
+	int fd;
+
+	char fname[32];
+	sprintf(fname, "/dev/socket/usbd");
+	fd = open(fname, O_RDWR);
+	if (fd < 0)
+		return -1;
+	fd = open_uevent_socket();
+	if (fd >= 0) {
+		fcntl(fd, F_SETFD, FD_CLOEXEC);
+		fcntl(fd, F_SETFL, O_NONBLOCK);
+		LOGI("ev_init function");
+		}
+    return fd;
+    }
 
 /* Phone was started up in normal mode 
  * main(): Phone was started up in normal mod
@@ -433,9 +451,11 @@ int main(int argc, char **argv)
   
   /* open device mode */
   LOGD("main(): Initializing usb_device_mode \n");
-  usb_mode_fd = open("/dev/usb_device_mode", O_RDONLY);
+  usb_mode_fd = open("/dev/usb_device_mode", O_RDWR);
 
   get_phone_mode();
+//  ev_init();
+
 
   if (usb_mode_fd < 0)
   {
